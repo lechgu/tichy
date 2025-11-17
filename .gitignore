@@ -1,0 +1,7 @@
+.vscode
+models/
+/.env
+tichy
+*.log
+tests.json
+examples/tichy_chat/.venv/

@@ -1,0 +1,93 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: tichy-postgres
+    environment:
+      POSTGRES_DB: tichy
+      POSTGRES_USER: tichy
+      POSTGRES_PASSWORD: Secret42!
+    ports:
+      - "5432:5432"
+    volumes:
+      - data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tichy"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  tichy:
+    build: .
+    container_name: tichy
+    volumes:
+      - .:/mnt/cwd
+    ports:
+      - "7070:80"
+    command:
+      - "serve"
+    environment:
+      DATABASE_URL: postgres://tichy:Secret42!@postgres:5432/tichy?sslmode=disable
+      LLM_SERVER_URL: http://llm:8080
+      EMBEDDING_SERVER_URL: http://embeddings:8081
+      TOP_K: 10
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:80/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      llm:
+        condition: service_started
+      embeddings:
+        condition: service_started
+
+  llm:
+    image: ghcr.io/ggerganov/llama.cpp:server-cuda
+    container_name: tichy-llm
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    ports:
+      - "8080:8080"
+    volumes:
+      - ~/models/llama:/mnt/models:ro
+    command:
+      - "--model"
+      - "/mnt/models/google_gemma-3-12b-it-Q8_0.gguf"
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "8080"
+      - "--ctx-size"
+      - "4096"
+      - "--n-gpu-layers"
+      - "99"
+
+  embeddings:
+    image: ghcr.io/ggerganov/llama.cpp:server-cuda
+    container_name: tichy-embeddings
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    ports:
+      - "8081:8081"
+    volumes:
+      - ~/models/llama:/mnt/models:ro
+    command:
+      - "--model"
+      - "/mnt/models/nomic-embed-text-v1.5.Q8_0.gguf"
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "8081"
+      - "--ctx-size"
+      - "2048"
+      - "--embedding"
+
+volumes:
+  data:
