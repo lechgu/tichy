@@ -1,0 +1,61 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+
+      - name: Get version from tag
+        id: tag
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/}
+          else
+            VERSION=${{ github.event.release.tag_name }}
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      - name: Build binaries
+        run: |
+          mkdir -p dist
+          GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o dist/tichy-linux-amd64 .
+          GOOS=linux GOARCH=arm64 go build -trimpath -ldflags="-s -w" -o dist/tichy-linux-arm64 .
+          GOOS=darwin GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o dist/tichy-darwin-amd64 .
+          GOOS=darwin GOARCH=arm64 go build -trimpath -ldflags="-s -w" -o dist/tichy-darwin-arm64 .
+          GOOS=windows GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o dist/tichy-windows-amd64.exe .
+
+      - name: Create checksums
+        run: |
+          cd dist
+          sha256sum * > checksums.txt
+
+      - name: Create or update release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.tag.outputs.version }}
+          name: Release ${{ steps.tag.outputs.version }}
+          files: |
+            dist/*
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(steps.tag.outputs.version, 'alpha') || contains(steps.tag.outputs.version, 'beta') || contains(steps.tag.outputs.version, 'rc') || (github.event_name == 'release' && github.event.release.prerelease) }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
