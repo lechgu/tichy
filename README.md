@@ -30,12 +30,12 @@ Update the volume paths in `docker-compose.yml` if using a different location.
 
 Start PostgreSQL, LLM server, and embeddings server:
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 Verify services are running:
 ```bash
-docker-compose ps
+docker compose ps
 ```
 
 ### 3. Configure Environment
@@ -55,8 +55,8 @@ make build
 
 Or use Docker to run commands without building locally:
 ```bash
-docker-compose run --rm tichy db up
-docker-compose run --rm tichy ingest --source /mnt/cwd/examples/insurellm/knowledge-base/ --mode text
+docker compose run --rm tichy db up
+docker compose run --rm tichy ingest --source /mnt/cwd/examples/insurellm/knowledge-base/ --mode text
 ```
 
 Initialize the database:
