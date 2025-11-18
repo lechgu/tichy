@@ -40,6 +40,7 @@ jobs:
           GOOS=darwin GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o dist/tichy-darwin-amd64 .
           GOOS=darwin GOARCH=arm64 go build -trimpath -ldflags="-s -w" -o dist/tichy-darwin-arm64 .
           GOOS=windows GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o dist/tichy-windows-amd64.exe .
+          chmod +x dist/tichy-linux-amd64 dist/tichy-linux-arm64 dist/tichy-darwin-amd64 dist/tichy-darwin-arm64
 
       - name: Create checksums
         run: |
