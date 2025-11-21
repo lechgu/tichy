@@ -91,7 +91,7 @@ Or with markdown rendering:
 ### Interactive Chat
 ```bash
 ./tichy chat
-> What is the maximum coverage for earthquake insurance?
+> When InsureLLM was founded?
 ```
 
 ### Generate Tests
