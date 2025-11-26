@@ -17,6 +17,14 @@ type Config struct {
 	ChunkOverlap         int    `env:"CHUNK_OVERLAP" envDefault:"200"`
 	TopK                 int    `env:"TOP_K" envDefault:"5"`
 	SystemPromptTemplate string `env:"SYSTEM_PROMPT_TEMPLATE"`
+	VectorBackend        string `env:"VECTORDB_BACKEND"`
+	Qdrant               Qdrant
+}
+
+type Qdrant struct {
+	Collection string `env:QDRANT_COLLECTION`
+	Host       string `env:QDRANT_HOST`
+	Port       int    `env:QDRANT_PORT`
 }
 
 func New(di do.Injector) (*Config, error) {
