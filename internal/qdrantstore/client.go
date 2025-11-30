@@ -20,8 +20,14 @@ func NewQdrantClient(cfg *config.Config) (*qdrant.Client, error) {
 	client, err := qdrant.NewClient(qdrantCfg)
 	if err != nil {
 		log.Println("ERROR: unable to create new Qdrant client", err)
-		return client, err
+		return nil, err
 	}
+	err = createQdrantCollection(cfg, client)
+	return client, err
+}
+
+func createQdrantCollection(cfg *config.Config, client *qdrant.Client) error {
+	var err error
 	collection := cfg.Qdrant.Collection
 	ctx := context.Background()
 	colClient := client.GetCollectionsClient()
@@ -30,7 +36,7 @@ func NewQdrantClient(cfg *config.Config) (*qdrant.Client, error) {
 	})
 	if err != nil {
 		log.Println("collection already exists, dropping", collection)
-		return client, nil
+		return err
 	}
 	csize := cfg.Qdrant.CollectionSize
 	if csize == 0 {
@@ -47,7 +53,8 @@ func NewQdrantClient(cfg *config.Config) (*qdrant.Client, error) {
 	})
 	if err != nil {
 		log.Fatalf("unable to create collection %s, error: %v", collection, err)
+		return err
 	}
 	fmt.Println("collection response", resp)
-	return client, err
+	return nil
 }
