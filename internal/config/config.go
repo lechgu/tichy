@@ -23,6 +23,7 @@ type Config struct {
 
 type Qdrant struct {
 	Collection       string `env:QDRANT_COLLECTION`
+	CollectionSize   uint64 `env:QDRANT_COLLECTION_SIZE`
 	Host             string `env:QDRANT_HOST`
 	Port             int    `env:QDRANT_PORT`
 	APIKey           string `env:QDRANT_API_KEY`
