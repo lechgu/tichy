@@ -22,15 +22,15 @@ type Config struct {
 }
 
 type Qdrant struct {
-	Collection       string `env:QDRANT_COLLECTION`
-	CollectionSize   uint64 `env:QDRANT_COLLECTION_SIZE`
-	Host             string `env:QDRANT_HOST`
-	Port             int    `env:QDRANT_PORT`
-	APIKey           string `env:QDRANT_API_KEY`
-	UseTLS           bool   `env:QDRAT_USETLS`
-	PoolSize         uint   `env:QDRANT_POOL_SIZE`
-	KeepAliveTime    int    `env:QDRANT_KEEP_ALIVE_TIME`
-	KeepAliveTimeout uint   `env:QDRANT_KEEP_ALIVE_TIMEOUT`
+	Collection       string `env:"QDRANT_COLLECTION"`
+	CollectionSize   uint64 `env:"QDRANT_COLLECTION_SIZE"`
+	Host             string `env:"QDRANT_HOST"`
+	Port             int    `env:"QDRANT_PORT"`
+	APIKey           string `env:"QDRANT_API_KEY"`
+	UseTLS           bool   `env:"QDRAT_USE_TLS"`
+	PoolSize         uint   `env:"QDRANT_POOL_SIZE"`
+	KeepAliveTime    int    `env:"QDRANT_KEEP_ALIVE_TIME"`
+	KeepAliveTimeout uint   `env:"QDRANT_KEEP_ALIVE_TIMEOUT"`
 }
 
 func New(di do.Injector) (*Config, error) {
