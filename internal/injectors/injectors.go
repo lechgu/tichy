@@ -57,7 +57,7 @@ func provideIngestor(i do.Injector) (vectorstore.Ingestor, error) {
 		if err != nil {
 			return nil, err
 		}
-		collection := "collection" // TODO
+		collection := cfg.Qdrant.Collection
 		return qdrantstore.NewQdrantIngestor(client, collection), nil
 	}
 
@@ -81,7 +81,7 @@ func provideRetriever(i do.Injector) (vectorstore.Retriever, error) {
 		if err != nil {
 			return nil, err
 		}
-		collection := "collection" // TODO
+		collection := cfg.Qdrant.Collection
 		embed, _ := do.Invoke[*embedders.Embedder](i)
 		return qdrantstore.NewQdrantRetriever(client, collection, embed), nil
 	}
