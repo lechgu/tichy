@@ -21,6 +21,7 @@ func NewQdrantIngestor(client *qdrant.Client, collection string) *QdrantIngestor
 }
 
 func (ing *QdrantIngestor) Ingest(ctx context.Context, chunks []models.Chunk, embeddings [][]float32) error {
+	fmt.Println("ingesting docs into qdrant", len(chunks), len(embeddings))
 	if len(chunks) != len(embeddings) {
 		return ErrLengthMismatch
 	}
