@@ -5,7 +5,6 @@ package qdrantstore
 
 import (
 	"context"
-	"fmt"
 	"log"
 
 	"github.com/lechgu/tichy/internal/config"
@@ -34,10 +33,10 @@ func createQdrantCollection(cfg *config.Config, client *qdrant.Client) error {
 	_, err = colClient.Get(ctx, &qdrant.GetCollectionInfoRequest{
 		CollectionName: collection,
 	})
-	if err != nil {
-		log.Println("collection already exists, dropping", collection)
-		return err
+	if err == nil {
+		return nil
 	}
+	log.Printf("INFO: creation '%s' collection", collection)
 	csize := cfg.Qdrant.CollectionSize
 	if csize == 0 {
 		log.Println("WARNING: Qdrant collection size is not configured, using 1024")
@@ -47,7 +46,7 @@ func createQdrantCollection(cfg *config.Config, client *qdrant.Client) error {
 		Size:     csize,
 		Distance: qdrant.Distance_Cosine,
 	}
-	resp, err := colClient.Create(ctx, &qdrant.CreateCollection{
+	_, err = colClient.Create(ctx, &qdrant.CreateCollection{
 		CollectionName: collection,
 		VectorsConfig:  qdrant.NewVectorsConfig(params),
 	})
@@ -55,6 +54,5 @@ func createQdrantCollection(cfg *config.Config, client *qdrant.Client) error {
 		log.Fatalf("unable to create collection %s, error: %v", collection, err)
 		return err
 	}
-	fmt.Println("collection response", resp)
 	return nil
 }
