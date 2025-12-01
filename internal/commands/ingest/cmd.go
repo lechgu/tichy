@@ -72,7 +72,6 @@ func doIngest(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	//ingestor, err := do.Invoke[*ingestors.Ingestor](injectors.Default)
 	ingestor, err := do.Invoke[vectorstore.Ingestor](injectors.Default)
 	if err != nil {
 		return err

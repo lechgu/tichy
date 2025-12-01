@@ -32,7 +32,9 @@ func (r *QdrantRetriever) Query(ctx context.Context, query string, topK int) ([]
 		CollectionName: r.collection,
 		Vector:         emb[0],
 		Limit:          uint64(topK),
-		WithPayload:    &qdrant.WithPayloadSelector{},
+		WithPayload: &qdrant.WithPayloadSelector{
+			SelectorOptions: &qdrant.WithPayloadSelector_Include{},
+		},
 	})
 
 	if err != nil {
