@@ -34,7 +34,13 @@ func createQdrantCollection(cfg *config.Config, client *qdrant.Client) error {
 		CollectionName: collection,
 	})
 	if err == nil {
-		return nil
+		if !cfg.Qdrant.Recreate {
+			return nil
+		}
+		// drop collection
+		_, err = colClient.Delete(ctx, &qdrant.DeleteCollection{
+			CollectionName: collection,
+		})
 	}
 	log.Printf("INFO: creation '%s' collection", collection)
 	csize := cfg.Qdrant.CollectionSize

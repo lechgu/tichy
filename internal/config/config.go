@@ -27,7 +27,8 @@ type Qdrant struct {
 	Host             string `env:"QDRANT_HOST"`
 	Port             int    `env:"QDRANT_PORT"`
 	APIKey           string `env:"QDRANT_API_KEY"`
-	UseTLS           bool   `env:"QDRAT_USE_TLS"`
+	UseTLS           bool   `env:"QDRANT_USE_TLS"`
+	Recreate         bool   `env:"QDRANT_RECREATE_COLLECTION"`
 	PoolSize         uint   `env:"QDRANT_POOL_SIZE"`
 	KeepAliveTime    int    `env:"QDRANT_KEEP_ALIVE_TIME"`
 	KeepAliveTimeout uint   `env:"QDRANT_KEEP_ALIVE_TIMEOUT"`
