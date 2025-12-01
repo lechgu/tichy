@@ -4,15 +4,26 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"slices"
 
+	"github.com/lechgu/tichy/internal/config"
 	"github.com/lechgu/tichy/internal/models"
 	"github.com/samber/do/v2"
 )
 
-type TextFetcher struct{}
+type TextFetcher struct {
+	FileExtensions []string
+}
 
 func NewText(i do.Injector) (Fetcher, error) {
-	return &TextFetcher{}, nil
+	cfg, err := do.Invoke[*config.Config](i)
+	if err != nil {
+		return nil, err
+	}
+	if len(cfg.FileExtensions) > 0 {
+		return &TextFetcher{FileExtensions: cfg.FileExtensions}, nil
+	}
+	return &TextFetcher{FileExtensions: []string{".txt", ".md"}}, nil
 }
 
 func (t *TextFetcher) Fetch(ctx context.Context, source string) ([]models.Document, error) {
@@ -28,9 +39,14 @@ func (t *TextFetcher) Fetch(ctx context.Context, source string) ([]models.Docume
 		}
 
 		ext := filepath.Ext(path)
-		if ext != ".txt" && ext != ".md" {
+		if slices.Contains(t.FileExtensions, ext) {
 			return nil
 		}
+		/*
+			if ext != ".txt" && ext != ".md" {
+				return nil
+			}
+		*/
 
 		content, err := os.ReadFile(path)
 		if err != nil {
