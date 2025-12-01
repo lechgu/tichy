@@ -34,20 +34,24 @@ func createQdrantCollection(cfg *config.Config, client *qdrant.Client) error {
 		CollectionName: collection,
 	})
 	if err == nil {
-		if !cfg.Qdrant.Recreate {
+		if cfg.Qdrant.Recreate {
+			// drop collection
+			log.Printf("INFO: recreate '%s' collection", collection)
+			_, err = colClient.Delete(ctx, &qdrant.DeleteCollection{
+				CollectionName: collection,
+			})
+			if err != nil {
+				return err
+			}
+		} else {
 			return nil
 		}
-		// drop collection
-		_, err = colClient.Delete(ctx, &qdrant.DeleteCollection{
-			CollectionName: collection,
-		})
 	}
-	log.Printf("INFO: creation '%s' collection", collection)
 	csize := cfg.Qdrant.CollectionSize
 	if csize == 0 {
-		log.Println("WARNING: Qdrant collection size is not configured, using 1024")
-		csize = 1024
+		csize = 1024 // default collection size
 	}
+	log.Printf("INFO: create '%s' collection with size %d", collection, csize)
 	params := &qdrant.VectorParams{
 		Size:     csize,
 		Distance: qdrant.Distance_Cosine,
