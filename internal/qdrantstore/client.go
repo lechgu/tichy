@@ -11,7 +11,7 @@ import (
 	"github.com/qdrant/go-client/qdrant"
 )
 
-func NewQdrantClient(cfg *config.Config) (*qdrant.Client, error) {
+func NewQdrantClient(cfg *config.Config, createCollection bool) (*qdrant.Client, error) {
 	qdrantCfg := &qdrant.Config{
 		Host: cfg.Qdrant.Host,
 		Port: cfg.Qdrant.Port,
@@ -21,7 +21,9 @@ func NewQdrantClient(cfg *config.Config) (*qdrant.Client, error) {
 		log.Println("ERROR: unable to create new Qdrant client", err)
 		return nil, err
 	}
-	err = createQdrantCollection(cfg, client)
+	if createCollection {
+		err = createQdrantCollection(cfg, client)
+	}
 	return client, err
 }
 

@@ -53,7 +53,8 @@ func provideIngestor(i do.Injector) (vectorstore.Ingestor, error) {
 		return pgvectorstore.NewPgIngestor(db), nil
 
 	case "qdrant":
-		client, err := qdrantstore.NewQdrantClient(cfg)
+		// create new client which can create collections as we will use it for ingestion
+		client, err := qdrantstore.NewQdrantClient(cfg, true)
 		if err != nil {
 			return nil, err
 		}
@@ -77,7 +78,8 @@ func provideRetriever(i do.Injector) (vectorstore.Retriever, error) {
 		return pgvectorstore.NewPgRetriever(db, embed), nil
 
 	case "qdrant":
-		client, err := qdrantstore.NewQdrantClient(cfg)
+		// create new client which can not create collections as we will use it for retrieval
+		client, err := qdrantstore.NewQdrantClient(cfg, false)
 		if err != nil {
 			return nil, err
 		}
