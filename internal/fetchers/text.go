@@ -39,7 +39,7 @@ func (t *TextFetcher) Fetch(ctx context.Context, source string) ([]models.Docume
 		}
 
 		ext := filepath.Ext(path)
-		if slices.Contains(t.FileExtensions, ext) {
+		if !slices.Contains(t.FileExtensions, ext) {
 			return nil
 		}
 		/*
