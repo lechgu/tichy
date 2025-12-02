@@ -56,13 +56,12 @@ func provideIngestor(i do.Injector) (vectorstore.Ingestor, error) {
 		return pgvectorstore.NewPgIngestor(db), nil
 
 	case "qdrant":
-		// create new client which can create collections as we will use it for ingestion
-		client, err := qdrantstore.NewQdrantClient(cfg, true)
+		client, err := qdrantstore.NewQdrantClient(cfg)
 		if err != nil {
 			return nil, err
 		}
 		collection := cfg.Qdrant.Collection
-		return qdrantstore.NewQdrantIngestor(client, collection), nil
+		return qdrantstore.NewQdrantIngestor(cfg, client, collection), nil
 	}
 
 	return nil, fmt.Errorf("unknown backend %q", cfg.VectorBackend)
@@ -81,8 +80,7 @@ func provideRetriever(i do.Injector) (vectorstore.Retriever, error) {
 		return pgvectorstore.NewPgRetriever(db, embed), nil
 
 	case "qdrant":
-		// create new client which can not create collections as we will use it for retrieval
-		client, err := qdrantstore.NewQdrantClient(cfg, false)
+		client, err := qdrantstore.NewQdrantClient(cfg)
 		if err != nil {
 			return nil, err
 		}

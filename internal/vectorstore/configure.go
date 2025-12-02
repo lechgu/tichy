@@ -28,7 +28,7 @@ func Configure(di do.Injector, cfg *config.Config) {
 		do.Provide(di, func(i do.Injector) (Ingestor, error) {
 			client, _ := do.Invoke[*qdrant.Client](i)
 			collection := cfg.Qdrant.Collection
-			return qdrantstore.NewQdrantIngestor(client, collection), nil
+			return qdrantstore.NewQdrantIngestor(cfg, client, collection), nil
 		})
 
 		do.Provide(di, func(i do.Injector) (Retriever, error) {
