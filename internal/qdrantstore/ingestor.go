@@ -39,6 +39,7 @@ func (ing *QdrantIngestor) Ingest(ctx context.Context, chunks []models.Chunk, em
 			payloadMap[k] = v
 		}
 
+		/*
 		points[i] = &qdrant.PointStruct{
 			Id: &qdrant.PointId{PointIdOptions: &qdrant.PointId_Num{Num: uint64(i)}},
 			Vectors: &qdrant.Vectors{
@@ -46,6 +47,15 @@ func (ing *QdrantIngestor) Ingest(ctx context.Context, chunks []models.Chunk, em
 					Vector: &qdrant.Vector{Data: embeddings[i]},
 				},
 			},
+			Payload: toQdrantPayload(payloadMap),
+		}
+		*/
+		data := embeddings[i]
+		points[i] = &qdrant.PointStruct{
+			Id: qdrant.NewIDNum(uint64(i)),
+			Vectors: qdrant.NewVectors(
+				data...,
+			),
 			Payload: toQdrantPayload(payloadMap),
 		}
 
@@ -58,10 +68,26 @@ func (ing *QdrantIngestor) Ingest(ctx context.Context, chunks []models.Chunk, em
 	return err
 }
 
+/*
 func toQdrantPayload(fields map[string]interface{}) map[string]*qdrant.Value {
 	out := make(map[string]*qdrant.Value, len(fields))
 	for k, v := range fields {
 		out[k] = &qdrant.Value{Kind: &qdrant.Value_StringValue{StringValue: fmt.Sprint(v)}}
+	}
+	return out
+}
+*/
+func toQdrantPayload(fields map[string]interface{}) map[string]*qdrant.Value {
+	out := make(map[string]*qdrant.Value, len(fields))
+	for k, v := range fields {
+		switch v := v.(type) {
+		case int:
+			out[k] = qdrant.NewValueInt(int64(v))
+		case string:
+			out[k] = qdrant.NewValueString(v)
+		default:
+			out[k] = qdrant.NewValueString(fmt.Sprint(v))
+		}
 	}
 	return out
 }
