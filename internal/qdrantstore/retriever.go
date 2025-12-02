@@ -28,13 +28,14 @@ func (r *QdrantRetriever) Query(ctx context.Context, query string, topK int) ([]
 	}
 
 	pclient := r.client.GetPointsClient()
+	sel := qdrant.WithPayloadSelector{
+		SelectorOptions: &qdrant.WithPayloadSelector_Enable{Enable: true},
+	}
 	search, err := pclient.Search(ctx, &qdrant.SearchPoints{
 		CollectionName: r.collection,
 		Vector:         emb[0],
 		Limit:          uint64(topK),
-		WithPayload: &qdrant.WithPayloadSelector{
-			SelectorOptions: &qdrant.WithPayloadSelector_Include{},
-		},
+		WithPayload:    &sel,
 	})
 
 	if err != nil {
