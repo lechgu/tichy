@@ -11,15 +11,18 @@ import (
 
 var ErrLengthMismatch = errors.New("chunks and embeddings length mismatch")
 
+// QdrantIngestor structure defines Qdrant ingestor
 type QdrantIngestor struct {
 	client     *qdrant.Client
 	collection string
 }
 
+// NewQdrantIngestor provides new Qdrant ingestor
 func NewQdrantIngestor(client *qdrant.Client, collection string) *QdrantIngestor {
 	return &QdrantIngestor{client: client, collection: collection}
 }
 
+// Ingest implements vectorestores Ingest method
 func (ing *QdrantIngestor) Ingest(ctx context.Context, chunks []models.Chunk, embeddings [][]float32) error {
 	fmt.Println("ingesting docs into qdrant", len(chunks), len(embeddings))
 	if len(chunks) != len(embeddings) {
@@ -39,17 +42,6 @@ func (ing *QdrantIngestor) Ingest(ctx context.Context, chunks []models.Chunk, em
 			payloadMap[k] = v
 		}
 
-		/*
-		points[i] = &qdrant.PointStruct{
-			Id: &qdrant.PointId{PointIdOptions: &qdrant.PointId_Num{Num: uint64(i)}},
-			Vectors: &qdrant.Vectors{
-				VectorsOptions: &qdrant.Vectors_Vector{
-					Vector: &qdrant.Vector{Data: embeddings[i]},
-				},
-			},
-			Payload: toQdrantPayload(payloadMap),
-		}
-		*/
 		data := embeddings[i]
 		points[i] = &qdrant.PointStruct{
 			Id: qdrant.NewIDNum(uint64(i)),
@@ -68,15 +60,7 @@ func (ing *QdrantIngestor) Ingest(ctx context.Context, chunks []models.Chunk, em
 	return err
 }
 
-/*
-func toQdrantPayload(fields map[string]interface{}) map[string]*qdrant.Value {
-	out := make(map[string]*qdrant.Value, len(fields))
-	for k, v := range fields {
-		out[k] = &qdrant.Value{Kind: &qdrant.Value_StringValue{StringValue: fmt.Sprint(v)}}
-	}
-	return out
-}
-*/
+// helper function to provide Qdrant payload
 func toQdrantPayload(fields map[string]interface{}) map[string]*qdrant.Value {
 	out := make(map[string]*qdrant.Value, len(fields))
 	for k, v := range fields {

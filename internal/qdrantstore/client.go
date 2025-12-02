@@ -11,6 +11,9 @@ import (
 	"github.com/qdrant/go-client/qdrant"
 )
 
+// NewQdrantClient provides instance of new Qdrant client
+// Upstream code should provide createCollection flag to enforce
+// collection creation in Qdrant database
 func NewQdrantClient(cfg *config.Config, createCollection bool) (*qdrant.Client, error) {
 	qdrantCfg := &qdrant.Config{
 		Host: cfg.Qdrant.Host,
@@ -27,6 +30,7 @@ func NewQdrantClient(cfg *config.Config, createCollection bool) (*qdrant.Client,
 	return client, err
 }
 
+// helper function to create Qdrant collection
 func createQdrantCollection(cfg *config.Config, client *qdrant.Client) error {
 	var err error
 	collection := cfg.Qdrant.Collection

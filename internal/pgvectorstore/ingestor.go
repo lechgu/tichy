@@ -12,14 +12,17 @@ import (
 
 var ErrLengthMismatch = errors.New("chunks and embeddings length mismatch")
 
+// PgIngestor defines PostgresSQL ingestor structure
 type PgIngestor struct {
 	db *sql.DB
 }
 
+// NewPgIngestor defines new PostgresSQL ingestor
 func NewPgIngestor(db *sql.DB) *PgIngestor {
 	return &PgIngestor{db: db}
 }
 
+// Ingest implements vectorstore.Ingest method for PostgresSQL ingestor
 func (ing *PgIngestor) Ingest(ctx context.Context, chunks []models.Chunk, embeddings [][]float32) error {
 	if len(chunks) != len(embeddings) {
 		return ErrLengthMismatch

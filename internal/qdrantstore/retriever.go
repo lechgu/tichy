@@ -7,20 +7,24 @@ import (
 	"github.com/qdrant/go-client/qdrant"
 )
 
+// Embedder interace
 type Embedder interface {
 	Embed(ctx context.Context, chunks []models.Chunk) ([][]float32, error)
 }
 
+// QdrantRetriever defines Qdrant retriever structure
 type QdrantRetriever struct {
 	client     *qdrant.Client
 	collection string
 	embedder   Embedder
 }
 
+// NewQdrantRetriever provides new Qdrant retriever
 func NewQdrantRetriever(client *qdrant.Client, collection string, embedder Embedder) *QdrantRetriever {
 	return &QdrantRetriever{client: client, collection: collection, embedder: embedder}
 }
 
+// Query provides query method of retriever
 func (r *QdrantRetriever) Query(ctx context.Context, query string, topK int) ([]models.Chunk, error) {
 	emb, err := r.embedder.Embed(ctx, []models.Chunk{{Text: query}})
 	if err != nil {

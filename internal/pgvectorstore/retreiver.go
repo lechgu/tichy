@@ -9,19 +9,23 @@ import (
 	"github.com/pgvector/pgvector-go"
 )
 
-type PgRetriever struct {
-	db       *sql.DB
-	embedder Embedder // your existing embedder interface
-}
-
+// Embedder interace
 type Embedder interface {
 	Embed(ctx context.Context, chunks []models.Chunk) ([][]float32, error)
 }
 
+// PgRetriever defines PostgresSQL retriever structure
+type PgRetriever struct {
+	db       *sql.DB
+	embedder Embedder
+}
+
+// NewPgRetriever defines new PostgresSQL retriever instance
 func NewPgRetriever(db *sql.DB, embedder Embedder) *PgRetriever {
 	return &PgRetriever{db: db, embedder: embedder}
 }
 
+// Query implements vectorstore.Query method for PostgresSQL ingestor
 func (r *PgRetriever) Query(ctx context.Context, query string, topK int) ([]models.Chunk, error) {
 	embeddings, err := r.embedder.Embed(ctx, []models.Chunk{{Text: query}})
 	if err != nil {

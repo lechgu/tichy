@@ -28,10 +28,13 @@ func init() {
 	do.Provide(Default, databases.New)
 	do.Provide(Default, chunkers.New)
 	do.Provide(Default, embedders.New)
+
+	// original code used specific implementation of ingestor and retiever
 	//do.Provide(Default, ingestors.New)
 	//do.Provide(Default, retrievers.New)
 
-	// backend-selection provider will give us either pgvectorstore or chromadb one
+	// with new vectorstore interface we can define ingestor and retriever
+	// based on on specific vectorstore backeend, e.g. pgvectorstore or qdrantstore
 	do.Provide(Default, provideIngestor)
 	do.Provide(Default, provideRetriever)
 
