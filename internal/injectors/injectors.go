@@ -40,8 +40,27 @@ func init() {
 
 	do.Provide(Default, responders.New)
 	do.Provide(Default, conversations.New)
-	do.Provide(Default, servers.New)
+
+	// provide web server, authz or default one
+	//do.Provide(Default, servers.New)
+	do.Provide(Default, provideWebServer)
+
 	do.ProvideNamed(Default, "text", fetchers.NewText)
+}
+
+func provideWebServer(i do.Injector) (servers.WebServer, error) {
+	cfg, err := do.Invoke[*config.Config](i)
+	if err != nil {
+		return nil, err
+	}
+
+	switch cfg.WebServer {
+	case "authz":
+		return servers.NewAuthzServer(i, cfg.WebTokenSecret)
+	default:
+		return servers.New(i)
+	}
+	return nil, fmt.Errorf("unknown web server %q", cfg.WebServer)
 }
 
 func provideIngestor(i do.Injector) (vectorstore.Ingestor, error) {
