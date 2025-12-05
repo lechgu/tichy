@@ -2,7 +2,9 @@ package qdrantstore
 
 import (
 	"context"
+	"log"
 
+	"github.com/lechgu/tichy/internal/auth"
 	"github.com/lechgu/tichy/internal/models"
 	"github.com/qdrant/go-client/qdrant"
 )
@@ -31,12 +33,22 @@ func (r *QdrantRetriever) Query(ctx context.Context, query string, topK int) ([]
 		return nil, err
 	}
 
+	// Check given context and extract user's collection to use
+	collection := r.collection
+	if user, ok := auth.UserFromContext(ctx); ok {
+		if user.Collection != "" {
+			log.Printf("INFO: receive request to user custom collection=%s from user=%s", user.Collection, user.Name)
+			collection = user.Collection
+		}
+
+	}
+
 	pclient := r.client.GetPointsClient()
 	sel := qdrant.WithPayloadSelector{
 		SelectorOptions: &qdrant.WithPayloadSelector_Enable{Enable: true},
 	}
 	search, err := pclient.Search(ctx, &qdrant.SearchPoints{
-		CollectionName: r.collection,
+		CollectionName: collection,
 		Vector:         emb[0],
 		Limit:          uint64(topK),
 		WithPayload:    &sel,
