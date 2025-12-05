@@ -18,6 +18,8 @@ type Config struct {
 	TopK                 int      `env:"TOP_K" envDefault:"5"`
 	SystemPromptTemplate string   `env:"SYSTEM_PROMPT_TEMPLATE"`
 	VectorBackend        string   `env:"VECTORDB_BACKEND"`
+	WebServer            string   `env:"WEB_SERVER"`
+	WebTokenSecret       string   `env:"WEB_TOKEN_SECRET"`
 	FileExtensions       []string `env:"FILE_EXTENSIONS"`
 	Qdrant               Qdrant
 }
