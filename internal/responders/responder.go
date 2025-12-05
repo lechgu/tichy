@@ -8,7 +8,7 @@ import (
 
 	"github.com/lechgu/tichy/internal/config"
 	"github.com/lechgu/tichy/internal/models"
-	"github.com/lechgu/tichy/internal/retrievers"
+	"github.com/lechgu/tichy/internal/vectorstore"
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/option"
 	"github.com/samber/do/v2"
@@ -16,7 +16,7 @@ import (
 
 type Responder struct {
 	cfg                  *config.Config
-	retriever            *retrievers.Retriever
+	retriever            vectorstore.Retriever
 	client               openai.Client
 	systemPromptTemplate string
 }
@@ -27,7 +27,7 @@ func New(di do.Injector) (*Responder, error) {
 		return nil, err
 	}
 
-	retriever, err := do.Invoke[*retrievers.Retriever](di)
+	retriever, err := do.Invoke[vectorstore.Retriever](di)
 	if err != nil {
 		return nil, err
 	}
