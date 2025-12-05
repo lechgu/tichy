@@ -36,9 +36,11 @@ func (r *QdrantRetriever) Query(ctx context.Context, query string, topK int) ([]
 	// Check given context and extract user's collection to use
 	collection := r.collection
 	if user, ok := auth.UserFromContext(ctx); ok {
-		if user.Collection != "" {
-			log.Printf("INFO: receive request to user custom collection=%s from user=%s", user.Collection, user.Name)
-			collection = user.Collection
+		if len(user.VectorDBs) != 0 {
+			// TODO: so far we use first entry
+			//       extend code to concurrently look-up information from different dbs
+			log.Printf("INFO: receive request from %+v", user)
+			collection = user.VectorDBs[0]
 		}
 
 	}

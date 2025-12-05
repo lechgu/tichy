@@ -21,8 +21,8 @@ import (
 
 // CustomClaims defines custom claims of JWT token
 type CustomClaims struct {
-	User       string `json:"user"`
-	Collection string `json:"collection"`
+	User      string   `json:"user"`
+	VectorDbs []string `json:"vector_dbs"`
 }
 
 // Claims defines JWT claims to parse
@@ -46,7 +46,7 @@ func ParseToken(tokenString string, jwtSecret []byte) (*User, error) {
 	}
 
 	return &User{
-		Name:       claims.Custom.User,
-		Collection: claims.Custom.Collection,
+		Name:      claims.Custom.User,
+		VectorDBs: claims.Custom.VectorDbs,
 	}, nil
 }
