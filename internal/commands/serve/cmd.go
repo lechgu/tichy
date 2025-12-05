@@ -22,7 +22,8 @@ func doServe(cmd *cobra.Command, args []string) error {
 	ctx, cancel := context.WithCancel(cmd.Context())
 	defer cancel()
 
-	server, err := do.Invoke[*servers.Server](injectors.Default)
+	//server, err := do.Invoke[*servers.Server](injectors.Default)
+	server, err := do.Invoke[servers.WebServer](injectors.Default)
 	if err != nil {
 		return err
 	}
