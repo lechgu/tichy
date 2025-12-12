@@ -1,6 +1,9 @@
 package config
 
 import (
+	"log"
+	"os"
+
 	"github.com/caarlos0/env/v11"
 	"github.com/joho/godotenv"
 	"github.com/samber/do/v2"
@@ -38,7 +41,24 @@ type Qdrant struct {
 }
 
 func New(di do.Injector) (*Config, error) {
-	_ = godotenv.Load()
+	var err error
+	tenv := os.Getenv("TICHY_ENV")
+	if tenv != "" {
+		if _, statErr := os.Stat(tenv); statErr == nil {
+			// File TICHY_ENV exists, load it
+			err = godotenv.Load(tenv)
+		} else if os.IsNotExist(statErr) {
+			log.Fatalf("TICHY_ENV file %s does not exist", tenv)
+		} else {
+			log.Fatalf("Unable to check TICHY_ENV file %s: %v", tenv, statErr)
+		}
+	} else {
+		// Load default .env file
+		err = godotenv.Load()
+	}
+	if err != nil {
+		log.Fatalf("Unable to local neither TICHY_ENV or .env file, error: %v", err)
+	}
 
 	cfg := &Config{}
 	if err := env.Parse(cfg); err != nil {
