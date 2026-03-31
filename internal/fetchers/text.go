@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+    "unicode/utf8"
 
 	"github.com/lechgu/tichy/internal/config"
 	"github.com/lechgu/tichy/internal/models"
@@ -23,7 +24,7 @@ func NewText(i do.Injector) (Fetcher, error) {
 	if len(cfg.FileExtensions) > 0 {
 		return &TextFetcher{FileExtensions: cfg.FileExtensions}, nil
 	}
-	return &TextFetcher{FileExtensions: []string{".txt", ".md"}}, nil
+	return &TextFetcher{FileExtensions: []string{".txt", ".md", ".log"}}, nil
 }
 
 func (t *TextFetcher) Fetch(ctx context.Context, source string) ([]models.Document, error) {
@@ -68,7 +69,7 @@ func (t *TextFetcher) Fetch(ctx context.Context, source string) ([]models.Docume
 		}
 
 		docs = append(docs, models.Document{
-			Content: string(content),
+			Content: sanitizeUTF8(string(content)),
 			ID:      path,
 			Metadata: map[string]string{
 				"filename":      filepath.Base(path),
@@ -86,3 +87,12 @@ func (t *TextFetcher) Fetch(ctx context.Context, source string) ([]models.Docume
 
 	return docs, nil
 }
+
+
+func sanitizeUTF8(s string) string {
+	if utf8.ValidString(s) {
+		return s
+	}
+	return string([]rune(s))
+}
+
