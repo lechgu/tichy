@@ -25,6 +25,7 @@ type Config struct {
 	WebTokenSecret       string   `env:"WEB_TOKEN_SECRET"`
 	FileExtensions       []string `env:"FILE_EXTENSIONS"`
 	Qdrant               Qdrant
+	ImageServer          ImageServer
 }
 
 type Qdrant struct {
@@ -38,6 +39,11 @@ type Qdrant struct {
 	PoolSize         uint   `env:"QDRANT_POOL_SIZE"`
 	KeepAliveTime    int    `env:"QDRANT_KEEP_ALIVE_TIME"`
 	KeepAliveTimeout uint   `env:"QDRANT_KEEP_ALIVE_TIMEOUT"`
+}
+
+type ImageServer struct {
+	Host string `env:"QDRANT_HOST"`
+	Port int    `env:"QDRANT_PORT"`
 }
 
 func New(di do.Injector) (*Config, error) {

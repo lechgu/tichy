@@ -139,6 +139,29 @@ func (s *AuthzServer) handleChatCompletions(c *gin.Context) {
 	// extract from http request user's token and create specific context with
 	// user based information
 
+	// image server hook to search for user's image queries
+	if requiresImageSearch(lastUserMessage) && s.cfg.ImageServer.Host != "" && s.cfg.ImageServer.Port != 0 {
+		imageServer := fmt.Sprintf("http://%s:%v", s.cfg.ImageServer.Host, s.cfg.ImageServer.Port)
+		imagePath := extractImagePath(lastUserMessage)
+
+		hits, err := SearchByPath(imageServer, imagePath)
+		if err != nil {
+			s.logger.Errorf("Image search error: %v", err)
+		} else {
+			// Build text context for the LLM
+			ctx := buildImageContext(hits)
+
+			// Prepend as system message
+			openaiMessages = append(
+				[]openai.ChatCompletionMessageParamUnion{
+					openai.SystemMessage("Image Search Results:\n" + ctx),
+				},
+				openaiMessages...,
+			)
+		}
+	}
+
+	// ackquire response from all messages
 	response, err := s.responder.Respond(c.Request.Context(), openaiMessages, lastUserMessage)
 	if err != nil {
 		s.logger.Errorf("Chat completion error: %v", err)
