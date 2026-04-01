@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
-    "unicode/utf8"
+	"unicode/utf8"
 
 	"github.com/lechgu/tichy/internal/config"
 	"github.com/lechgu/tichy/internal/models"
@@ -30,7 +30,11 @@ func NewText(i do.Injector) (Fetcher, error) {
 func (t *TextFetcher) Fetch(ctx context.Context, source string) ([]models.Document, error) {
 	var docs []models.Document
 
-	err := filepath.WalkDir(source, func(path string, d os.DirEntry, err error) error {
+	realSource, err := filepath.EvalSymlinks(source)
+	if err != nil {
+		return docs, err
+	}
+	err = filepath.WalkDir(realSource, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -88,11 +92,9 @@ func (t *TextFetcher) Fetch(ctx context.Context, source string) ([]models.Docume
 	return docs, nil
 }
 
-
 func sanitizeUTF8(s string) string {
 	if utf8.ValidString(s) {
 		return s
 	}
 	return string([]rune(s))
 }
-
