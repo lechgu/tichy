@@ -13,7 +13,7 @@ set -a
 source .env
 set +a
 
-V1collections=(
+collections=(
   "CHAP"
   "FOXDEN"
   "Computing"
