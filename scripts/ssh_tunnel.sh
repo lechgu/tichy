@@ -1,31 +1,36 @@
 #!/bin/bash
-
-# exit on error
 set -e
 
-# define remote service ports
-llm_port=8180
-emb_port=8181
-qdr_port=7334
+llm_port=${LLM_PORT:-8180}
+emb_port=${EMB_PORT:-8181}
+qdr_port=${QDR_PORT:-7334}
 
 user=$1
 node=$2
+mode=${3:-"--tunnel"}  # default mode
 
-# validate input
 if [[ -z "$user" || -z "$node" ]]; then
-  echo "Usage: $0 <user> <remote-node>"
+  echo "Usage: $0 <user> <remote-node> [--shell]"
   exit 1
 fi
 
-echo "Creating SSH tunnel to $user@$node"
-echo "Forwarding:"
-echo "  LLM  : localhost:$llm_port -> remote:$llm_port"
-echo "  EMB  : localhost:$emb_port -> remote:$emb_port"
-echo "  QDR  : localhost:$qdr_port -> remote:$qdr_port"
+echo "SSH tunnel → $user@$node"
+echo "LLM : localhost:$llm_port"
+echo "EMB : localhost:$emb_port"
+echo "QDR : localhost:$qdr_port"
 
-# run tunnel (no shell)
-ssh -N \
-  -L ${llm_port}:localhost:${llm_port} \
-  -L ${emb_port}:localhost:${emb_port} \
-  -L ${qdr_port}:localhost:${qdr_port} \
-  ${user}@${node}
+# base ssh command
+SSH_CMD=(
+  ssh
+  -L ${llm_port}:localhost:${llm_port}
+  -L ${emb_port}:localhost:${emb_port}
+  -L ${qdr_port}:localhost:${qdr_port}
+)
+
+if [[ "$mode" == "--shell" ]]; then
+  echo "Mode: tunnel + interactive shell"
+  exec "${SSH_CMD[@]}" ${user}@${node}
+else
+  echo "Mode: tunnel only (-N)"
+  exec "${SSH_CMD[@]}" -N ${user}@${node}
+fi
