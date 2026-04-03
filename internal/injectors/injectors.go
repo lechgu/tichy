@@ -10,12 +10,12 @@ import (
 	"github.com/lechgu/tichy/internal/databases"
 	"github.com/lechgu/tichy/internal/embedders"
 	"github.com/lechgu/tichy/internal/fetchers"
+	"github.com/lechgu/tichy/internal/interfaces"
 	"github.com/lechgu/tichy/internal/loggers"
 	"github.com/lechgu/tichy/internal/pgvectorstore"
 	"github.com/lechgu/tichy/internal/qdrantstore"
 	"github.com/lechgu/tichy/internal/responders"
 	"github.com/lechgu/tichy/internal/servers"
-	"github.com/lechgu/tichy/internal/vectorstore"
 	"github.com/samber/do/v2"
 )
 
@@ -33,8 +33,9 @@ func init() {
 	//do.Provide(Default, ingestors.New)
 	//do.Provide(Default, retrievers.New)
 
-	// with new vectorstore interface we can define ingestor and retriever
-	// based on on specific vectorstore backeend, e.g. pgvectorstore or qdrantstore
+	// Register Ingestor and Retriever under the canonical interfaces types.
+	// vectorstore.Ingestor / vectorstore.Retriever are type aliases for these,
+	// so any call-site that still resolves through vectorstore finds the same entry.
 	do.Provide(Default, provideIngestor)
 	do.Provide(Default, provideRetriever)
 
@@ -63,7 +64,7 @@ func provideWebServer(i do.Injector) (servers.WebServer, error) {
 	return nil, fmt.Errorf("unknown web server %q", cfg.WebServer)
 }
 
-func provideIngestor(i do.Injector) (vectorstore.Ingestor, error) {
+func provideIngestor(i do.Injector) (interfaces.Ingestor, error) {
 	cfg, err := do.Invoke[*config.Config](i)
 	if err != nil {
 		return nil, err
@@ -86,7 +87,7 @@ func provideIngestor(i do.Injector) (vectorstore.Ingestor, error) {
 	return nil, fmt.Errorf("unknown backend %q", cfg.VectorBackend)
 }
 
-func provideRetriever(i do.Injector) (vectorstore.Retriever, error) {
+func provideRetriever(i do.Injector) (interfaces.Retriever, error) {
 	cfg, err := do.Invoke[*config.Config](i)
 	if err != nil {
 		return nil, err

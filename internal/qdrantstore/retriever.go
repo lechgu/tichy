@@ -5,44 +5,48 @@ import (
 	"log"
 
 	"github.com/lechgu/tichy/internal/auth"
+	"github.com/lechgu/tichy/internal/interfaces"
 	"github.com/lechgu/tichy/internal/models"
 	"github.com/qdrant/go-client/qdrant"
 )
 
-// Embedder interace
-type Embedder interface {
-	Embed(ctx context.Context, chunks []models.Chunk) ([][]float32, error)
-}
-
 // QdrantRetriever defines Qdrant retriever structure
 type QdrantRetriever struct {
-	client     *qdrant.Client
-	collection string
-	embedder   Embedder
+	client            *qdrant.Client
+	defaultCollection string
+	embedder          interfaces.Embedder
 }
 
 // NewQdrantRetriever provides new Qdrant retriever
-func NewQdrantRetriever(client *qdrant.Client, collection string, embedder Embedder) *QdrantRetriever {
-	return &QdrantRetriever{client: client, collection: collection, embedder: embedder}
+func NewQdrantRetriever(client *qdrant.Client, collection string, embedder interfaces.Embedder) *QdrantRetriever {
+	return &QdrantRetriever{client: client, defaultCollection: collection, embedder: embedder}
 }
 
-// Query provides query method of retriever
+// Query retrieves chunks using the collection resolved from context or the default.
 func (r *QdrantRetriever) Query(ctx context.Context, query string, topK int) ([]models.Chunk, error) {
-	emb, err := r.embedder.Embed(ctx, []models.Chunk{{Text: query}})
-	if err != nil {
-		return nil, err
-	}
-
-	// Check given context and extract user's collection to use
-	collection := r.collection
+	collection := r.defaultCollection
 	if user, ok := auth.UserFromContext(ctx); ok {
 		if len(user.VectorDBs) != 0 {
-			// TODO: so far we use first entry
-			//       extend code to concurrently look-up information from different dbs
 			log.Printf("INFO: receive request from %+v", user)
 			collection = user.VectorDBs[0]
 		}
+	}
+	return r.queryCollection(ctx, collection, query, topK)
+}
 
+// QueryCollection retrieves chunks from an explicitly named collection.
+func (r *QdrantRetriever) QueryCollection(ctx context.Context, collection, query string, topK int) ([]models.Chunk, error) {
+	if collection == "" {
+		collection = r.defaultCollection
+	}
+	return r.queryCollection(ctx, collection, query, topK)
+}
+
+// queryCollection is the internal implementation that hits a specific Qdrant collection.
+func (r *QdrantRetriever) queryCollection(ctx context.Context, collection, query string, topK int) ([]models.Chunk, error) {
+	emb, err := r.embedder.Embed(ctx, []models.Chunk{{Text: query}})
+	if err != nil {
+		return nil, err
 	}
 
 	pclient := r.client.GetPointsClient()
@@ -55,7 +59,6 @@ func (r *QdrantRetriever) Query(ctx context.Context, query string, topK int) ([]
 		Limit:          uint64(topK),
 		WithPayload:    &sel,
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -67,15 +70,13 @@ func (r *QdrantRetriever) Query(ctx context.Context, query string, topK int) ([]
 			Text:     p["text"].GetStringValue(),
 			Source:   p["source"].GetStringValue(),
 			Index:    int(p["chunk_index"].GetIntegerValue()),
-			Metadata: map[string]string{},
+			Metadata: map[string]string{"collection": collection},
 		}
-
 		for k, v := range p {
 			if k != "text" && k != "source" && k != "chunk_index" {
 				c.Metadata[k] = v.GetStringValue()
 			}
 		}
-
 		out = append(out, c)
 	}
 

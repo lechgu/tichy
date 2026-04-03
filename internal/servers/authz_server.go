@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -105,7 +106,25 @@ func (s *AuthzServer) handleUserInfo(c *gin.Context) {
 	c.JSON(http.StatusBadRequest, gin.H{"status": "user info is not found in JWT token"})
 }
 
+// parseCollections extracts the ?collection= query parameter(s).
+// Supports comma-separated values: ?collection=A,B,C
+// as well as repeated params:      ?collection=A&collection=B
+func parseCollections(c *gin.Context) []string {
+	raw := c.QueryArray("collection")
+	var result []string
+	for _, v := range raw {
+		for _, part := range strings.Split(v, ",") {
+			part = strings.TrimSpace(part)
+			if part != "" {
+				result = append(result, part)
+			}
+		}
+	}
+	return result
+}
+
 func (s *AuthzServer) handleChatCompletions(c *gin.Context) {
+	// --- parse request body ---
 	var req models.ChatCompletionRequest
 	if err := c.BindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, models.ErrorResponse{Error: err.Error()})
@@ -117,6 +136,13 @@ func (s *AuthzServer) handleChatCompletions(c *gin.Context) {
 		return
 	}
 
+	// --- resolve target collections from query params ---
+	// e.g. /v1/chat/completions?collection=A&collection=B
+	//   or /v1/chat/completions?collection=A,B,C
+	collections := parseCollections(c)
+	s.logger.Infof("chat completions request: collections=%v", collections)
+
+	// --- build OpenAI message list ---
 	var lastUserMessage string
 	openaiMessages := make([]openai.ChatCompletionMessageParamUnion, 0, len(req.Messages))
 	for _, msg := range req.Messages {
@@ -127,7 +153,7 @@ func (s *AuthzServer) handleChatCompletions(c *gin.Context) {
 		case "assistant":
 			openaiMessages = append(openaiMessages, openai.AssistantMessage(msg.Content))
 		case "system":
-			// Skip system messages - we'll add our own with RAG context
+			// Skip – replaced by RAG-augmented system prompt
 		}
 	}
 
@@ -136,10 +162,7 @@ func (s *AuthzServer) handleChatCompletions(c *gin.Context) {
 		return
 	}
 
-	// extract from http request user's token and create specific context with
-	// user based information
-
-	// image server hook to search for user's image queries
+	// --- optional image-server hook ---
 	if requiresImageSearch(lastUserMessage) && s.cfg.ImageServer.Host != "" && s.cfg.ImageServer.Port != 0 {
 		imageServer := fmt.Sprintf("http://%s:%v", s.cfg.ImageServer.Host, s.cfg.ImageServer.Port)
 		imagePath := extractImagePath(lastUserMessage)
@@ -148,10 +171,7 @@ func (s *AuthzServer) handleChatCompletions(c *gin.Context) {
 		if err != nil {
 			s.logger.Errorf("Image search error: %v", err)
 		} else {
-			// Build text context for the LLM
 			ctx := buildImageContext(hits)
-
-			// Prepend as system message
 			openaiMessages = append(
 				[]openai.ChatCompletionMessageParamUnion{
 					openai.SystemMessage("Image Search Results:\n" + ctx),
@@ -161,8 +181,8 @@ func (s *AuthzServer) handleChatCompletions(c *gin.Context) {
 		}
 	}
 
-	// ackquire response from all messages
-	response, err := s.responder.Respond(c.Request.Context(), openaiMessages, lastUserMessage)
+	// --- fan-out retrieval + LLM response ---
+	response, err := s.responder.RespondMulti(c.Request.Context(), openaiMessages, lastUserMessage, collections)
 	if err != nil {
 		s.logger.Errorf("Chat completion error: %v", err)
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{Error: "failed to generate response"})
