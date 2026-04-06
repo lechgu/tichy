@@ -50,6 +50,7 @@ func New(di do.Injector) (*Responder, error) {
 	if err != nil {
 		return nil, err
 	}
+	fmt.Printf("Tichy configuration: %+v\n", cfg)
 
 	return &Responder{
 		cfg:                  cfg,
@@ -128,7 +129,7 @@ func (r *Responder) fetchChunks(ctx context.Context, query string, collections [
 
 func loadSystemPromptTemplate(cfg *config.Config) (string, error) {
 	const defaultTemplate = `You are a helpful assistant. Answer questions based on the provided context.
-If you don't know the answer, say so.
+If you don't know the answer, reply only with _nodatafound_ keyword and nothing else.
 
 Context:
 {context}`
