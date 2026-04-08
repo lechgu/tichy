@@ -35,7 +35,7 @@ func Configure(di do.Injector, cfg *config.Config) {
 			client, _ := do.Invoke[*qdrant.Client](i)
 			embed, _ := do.Invoke[*embedders.Embedder](i)
 			collection := cfg.Qdrant.Collection
-			return qdrantstore.NewQdrantRetriever(client, collection, embed), nil
+			return qdrantstore.NewQdrantRetriever(cfg, client, collection, embed), nil
 		})
 	}
 }
