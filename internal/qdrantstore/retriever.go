@@ -3,8 +3,10 @@ package qdrantstore
 import (
 	"context"
 	"log"
+	"strings"
 
 	"github.com/lechgu/tichy/internal/auth"
+	"github.com/lechgu/tichy/internal/config"
 	"github.com/lechgu/tichy/internal/interfaces"
 	"github.com/lechgu/tichy/internal/models"
 	"github.com/qdrant/go-client/qdrant"
@@ -15,11 +17,20 @@ type QdrantRetriever struct {
 	client            *qdrant.Client
 	defaultCollection string
 	embedder          interfaces.Embedder
+	LLMServerURL      string
 }
 
 // NewQdrantRetriever provides new Qdrant retriever
-func NewQdrantRetriever(client *qdrant.Client, collection string, embedder interfaces.Embedder) *QdrantRetriever {
-	return &QdrantRetriever{client: client, defaultCollection: collection, embedder: embedder}
+func NewQdrantRetriever(cfg *config.Config,
+	client *qdrant.Client,
+	collection string,
+	embedder interfaces.Embedder) *QdrantRetriever {
+	return &QdrantRetriever{
+		client:            client,
+		defaultCollection: collection,
+		embedder:          embedder,
+		LLMServerURL:      cfg.LLMServerURL,
+	}
 }
 
 // Query retrieves chunks using the collection resolved from context or the default.
@@ -53,12 +64,20 @@ func (r *QdrantRetriever) queryCollection(ctx context.Context, collection, query
 	sel := qdrant.WithPayloadSelector{
 		SelectorOptions: &qdrant.WithPayloadSelector_Enable{Enable: true},
 	}
-	search, err := pclient.Search(ctx, &qdrant.SearchPoints{
+	spoint := &qdrant.SearchPoints{
 		CollectionName: collection,
 		Vector:         emb[0],
 		Limit:          uint64(topK),
 		WithPayload:    &sel,
-	})
+	}
+	if strings.Contains(collection, "elog") {
+		if qp, err := ExtractQueryParams(ctx, r.LLMServerURL, query); err == nil {
+			if filter := BuildDynamicFilter(qp); filter != nil {
+				spoint.Filter = filter
+			}
+		}
+	}
+	search, err := pclient.Search(ctx, spoint)
 	if err != nil {
 		return nil, err
 	}

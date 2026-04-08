@@ -106,7 +106,7 @@ func provideRetriever(i do.Injector) (interfaces.Retriever, error) {
 		}
 		collection := cfg.Qdrant.Collection
 		embed, _ := do.Invoke[*embedders.Embedder](i)
-		return qdrantstore.NewQdrantRetriever(client, collection, embed), nil
+		return qdrantstore.NewQdrantRetriever(cfg, client, collection, embed), nil
 	}
 
 	return nil, fmt.Errorf("unknown backend %q", cfg.VectorBackend)
