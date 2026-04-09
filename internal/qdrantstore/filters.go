@@ -28,6 +28,26 @@ Fields:
 - date_from: ISO8601 (YYYY-MM-DDTHH:MM:SSZ)
 - date_to: ISO8601
 
+Examples:
+
+Input: "find logs from ops from april 2025"
+Output:
+{
+  "query": "logs",
+  "category": "Operations",
+  "date_from": "2025-04-01T00:00:00Z",
+  "date_to": "2025-05-01T00:00:00Z"
+}
+
+Input: "what did Maxwell do last week"
+Output:
+{
+  "query": "activities",
+  "author": "Maxwell",
+  "date_from": "...",
+  "date_to": "..."
+}
+
 Rules:
 - "ops" = "Operations"
 - Convert natural dates (e.g. "April 2025") into proper ranges
