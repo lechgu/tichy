@@ -3,7 +3,6 @@ package qdrantstore
 import (
 	"context"
 	"log"
-	"strings"
 
 	"github.com/lechgu/tichy/internal/auth"
 	"github.com/lechgu/tichy/internal/config"
@@ -12,25 +11,46 @@ import (
 	"github.com/qdrant/go-client/qdrant"
 )
 
-// QdrantRetriever defines Qdrant retriever structure
+// QdrantRetriever defines Qdrant retriever structure.
 type QdrantRetriever struct {
 	client            *qdrant.Client
 	defaultCollection string
 	embedder          interfaces.Embedder
-	LLMServerURL      string
+	llmServerURL      string
+
+	// schema describes the filterable payload fields for this retriever's
+	// collection.  When nil, no LLM-based filter extraction is performed and
+	// the search is pure vector similarity.  Set a non-nil schema to enable
+	// dynamic metadata filtering for any domain (elogs, images, SPARQL nodes…).
+	schema *FilterSchema
 }
 
-// NewQdrantRetriever provides new Qdrant retriever
-func NewQdrantRetriever(cfg *config.Config,
+// NewQdrantRetriever provides a new Qdrant retriever with no filter schema
+// (pure vector search).  Use WithSchema to attach a domain schema.
+func NewQdrantRetriever(
+	cfg *config.Config,
 	client *qdrant.Client,
 	collection string,
-	embedder interfaces.Embedder) *QdrantRetriever {
+	embedder interfaces.Embedder,
+) *QdrantRetriever {
 	return &QdrantRetriever{
 		client:            client,
 		defaultCollection: collection,
 		embedder:          embedder,
-		LLMServerURL:      cfg.LLMServerURL,
+		llmServerURL:      cfg.LLMServerURL,
 	}
+}
+
+// WithSchema returns a copy of the retriever with the given FilterSchema
+// attached.  Call this at wire-up time to enable domain-specific filtering:
+//
+//	retriever := NewQdrantRetriever(cfg, client, "elogs", embedder).
+//	               WithSchema(&ElogSchema)
+//
+// Passing nil disables filter extraction (equivalent to the no-schema default).
+func (r *QdrantRetriever) WithSchema(schema *FilterSchema) *QdrantRetriever {
+	r.schema = schema
+	return r
 }
 
 // Query retrieves chunks using the collection resolved from context or the default.
@@ -53,7 +73,7 @@ func (r *QdrantRetriever) QueryCollection(ctx context.Context, collection, query
 	return r.queryCollection(ctx, collection, query, topK)
 }
 
-// queryCollection is the internal implementation that hits a specific Qdrant collection.
+// queryCollection is the internal implementation shared by Query and QueryCollection.
 func (r *QdrantRetriever) queryCollection(ctx context.Context, collection, query string, topK int) ([]models.Chunk, error) {
 	emb, err := r.embedder.Embed(ctx, []models.Chunk{{Text: query}})
 	if err != nil {
@@ -70,13 +90,21 @@ func (r *QdrantRetriever) queryCollection(ctx context.Context, collection, query
 		Limit:          uint64(topK),
 		WithPayload:    &sel,
 	}
-	if strings.Contains(collection, "elog") {
-		if qp, err := ExtractQueryParams(ctx, r.LLMServerURL, query); err == nil {
-			if filter := BuildDynamicFilter(qp); filter != nil {
+
+	// Apply dynamic metadata filter when a schema is attached.
+	// This replaces the previous "strings.Contains(collection, 'elog')" check,
+	// which was fragile and prevented any other collection from using qdrantstore.
+	if r.schema != nil && r.llmServerURL != "" {
+		if params, err := ExtractQueryParams(ctx, r.llmServerURL, *r.schema, query); err == nil {
+			if filter := BuildDynamicFilter(*r.schema, params); filter != nil {
 				spoint.Filter = filter
 			}
+		} else {
+			// Log but don't fail — fall back to unfiltered vector search.
+			log.Printf("WARN: filter extraction failed for collection %q: %v", collection, err)
 		}
 	}
+
 	search, err := pclient.Search(ctx, spoint)
 	if err != nil {
 		return nil, err

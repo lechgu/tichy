@@ -16,6 +16,7 @@ import (
 	"github.com/lechgu/tichy/internal/qdrantstore"
 	"github.com/lechgu/tichy/internal/responders"
 	"github.com/lechgu/tichy/internal/servers"
+	"github.com/lechgu/tichy/internal/vectorstore"
 	"github.com/samber/do/v2"
 )
 
@@ -61,7 +62,6 @@ func provideWebServer(i do.Injector) (servers.WebServer, error) {
 	default:
 		return servers.New(i)
 	}
-	return nil, fmt.Errorf("unknown web server %q", cfg.WebServer)
 }
 
 func provideIngestor(i do.Injector) (interfaces.Ingestor, error) {
@@ -106,7 +106,17 @@ func provideRetriever(i do.Injector) (interfaces.Retriever, error) {
 		}
 		collection := cfg.Qdrant.Collection
 		embed, _ := do.Invoke[*embedders.Embedder](i)
-		return qdrantstore.NewQdrantRetriever(cfg, client, collection, embed), nil
+
+		//return qdrantstore.NewQdrantRetriever(cfg, client, collection, embed), nil
+
+		r := qdrantstore.NewQdrantRetriever(cfg, client, collection, embed)
+		// Attach the domain schema for the configured collection if one exists.
+		// This enables dynamic LLM-based filter extraction without any
+		// collection-name string matching in the retrieval hot path.
+		if schema := vectorstore.ResolveSchema(collection); schema != nil {
+			r = r.WithSchema(schema)
+		}
+		return r, nil
 	}
 
 	return nil, fmt.Errorf("unknown backend %q", cfg.VectorBackend)
