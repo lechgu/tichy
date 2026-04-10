@@ -1,17 +1,22 @@
 package injectors
 
 import (
+	"database/sql"
+	"fmt"
+
 	"github.com/lechgu/tichy/internal/chunkers"
 	"github.com/lechgu/tichy/internal/config"
 	"github.com/lechgu/tichy/internal/conversations"
 	"github.com/lechgu/tichy/internal/databases"
 	"github.com/lechgu/tichy/internal/embedders"
 	"github.com/lechgu/tichy/internal/fetchers"
-	"github.com/lechgu/tichy/internal/ingestors"
+	"github.com/lechgu/tichy/internal/interfaces"
 	"github.com/lechgu/tichy/internal/loggers"
+	"github.com/lechgu/tichy/internal/pgvectorstore"
+	"github.com/lechgu/tichy/internal/qdrantstore"
 	"github.com/lechgu/tichy/internal/responders"
-	"github.com/lechgu/tichy/internal/retrievers"
 	"github.com/lechgu/tichy/internal/servers"
+	"github.com/lechgu/tichy/internal/vectorstore"
 	"github.com/samber/do/v2"
 )
 
@@ -24,10 +29,95 @@ func init() {
 	do.Provide(Default, databases.New)
 	do.Provide(Default, chunkers.New)
 	do.Provide(Default, embedders.New)
-	do.Provide(Default, ingestors.New)
-	do.Provide(Default, retrievers.New)
+
+	// original code used specific implementation of ingestor and retiever
+	//do.Provide(Default, ingestors.New)
+	//do.Provide(Default, retrievers.New)
+
+	// Register Ingestor and Retriever under the canonical interfaces types.
+	// vectorstore.Ingestor / vectorstore.Retriever are type aliases for these,
+	// so any call-site that still resolves through vectorstore finds the same entry.
+	do.Provide(Default, provideIngestor)
+	do.Provide(Default, provideRetriever)
+
 	do.Provide(Default, responders.New)
 	do.Provide(Default, conversations.New)
-	do.Provide(Default, servers.New)
+
+	// provide web server, authz or default one
+	//do.Provide(Default, servers.New)
+	do.Provide(Default, provideWebServer)
+
 	do.ProvideNamed(Default, "text", fetchers.NewText)
+}
+
+func provideWebServer(i do.Injector) (servers.WebServer, error) {
+	cfg, err := do.Invoke[*config.Config](i)
+	if err != nil {
+		return nil, err
+	}
+
+	switch cfg.WebServer {
+	case "authz":
+		return servers.NewAuthzServer(i, cfg.WebTokenSecret)
+	default:
+		return servers.New(i)
+	}
+}
+
+func provideIngestor(i do.Injector) (interfaces.Ingestor, error) {
+	cfg, err := do.Invoke[*config.Config](i)
+	if err != nil {
+		return nil, err
+	}
+
+	switch cfg.VectorBackend {
+	case "pgvector":
+		db, _ := do.Invoke[*sql.DB](i)
+		return pgvectorstore.NewPgIngestor(db), nil
+
+	case "qdrant":
+		client, err := qdrantstore.NewQdrantClient(cfg)
+		if err != nil {
+			return nil, err
+		}
+		collection := cfg.Qdrant.Collection
+		return qdrantstore.NewQdrantIngestor(cfg, client, collection), nil
+	}
+
+	return nil, fmt.Errorf("unknown backend %q", cfg.VectorBackend)
+}
+
+func provideRetriever(i do.Injector) (interfaces.Retriever, error) {
+	cfg, err := do.Invoke[*config.Config](i)
+	if err != nil {
+		return nil, err
+	}
+
+	switch cfg.VectorBackend {
+	case "pgvector":
+		db, _ := do.Invoke[*sql.DB](i)
+		embed, _ := do.Invoke[*embedders.Embedder](i)
+		return pgvectorstore.NewPgRetriever(db, embed), nil
+
+	case "qdrant":
+		client, err := qdrantstore.NewQdrantClient(cfg)
+		if err != nil {
+			return nil, err
+		}
+		collection := cfg.Qdrant.Collection
+		embed, _ := do.Invoke[*embedders.Embedder](i)
+
+		//return qdrantstore.NewQdrantRetriever(cfg, client, collection, embed), nil
+
+		r := qdrantstore.NewQdrantRetriever(cfg, client, collection, embed)
+		// Attach the domain schema for the configured collection if one exists.
+		// This enables dynamic LLM-based filter extraction without any
+		// collection-name string matching in the retrieval hot path.
+		if schema := vectorstore.ResolveSchema(collection); schema != nil {
+			r = r.WithSchema(schema)
+		}
+		return r, nil
+	}
+
+	return nil, fmt.Errorf("unknown backend %q", cfg.VectorBackend)
 }

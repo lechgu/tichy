@@ -6,8 +6,8 @@ import (
 	"github.com/lechgu/tichy/internal/chunkers"
 	"github.com/lechgu/tichy/internal/embedders"
 	"github.com/lechgu/tichy/internal/fetchers"
-	"github.com/lechgu/tichy/internal/ingestors"
 	"github.com/lechgu/tichy/internal/injectors"
+	"github.com/lechgu/tichy/internal/interfaces"
 	"github.com/lechgu/tichy/internal/models"
 	"github.com/samber/do/v2"
 	"github.com/spf13/cobra"
@@ -72,7 +72,7 @@ func doIngest(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	ingestor, err := do.Invoke[*ingestors.Ingestor](injectors.Default)
+	ingestor, err := do.Invoke[interfaces.Ingestor](injectors.Default)
 	if err != nil {
 		return err
 	}

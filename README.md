@@ -121,6 +121,12 @@ Key environment variables in `.env`:
 - `CHUNK_OVERLAP`: Chunk overlap (default: 100)
 - `TOP_K`: Number of results to retrieve (default: 10)
 
+## FOXDEN authorization
+We use FOXDEN frontend to authorize which vector DBs concrete user can see.
+For example, a user from computing group can only see `computing` vector DB.
+This allow to separate user access to different databases. Finer granularity
+should be provided via FOXDEN configuration module.
+
 ## Acknowledgments
 
 The example insurance knowledge base in `examples/insurellm/` is derived from the dataset provided by [LLM Engineering course](https://github.com/ed-donner/llm_engineering).
